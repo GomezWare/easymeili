@@ -10,6 +10,12 @@ export const GET: APIRoute = async ({ request }) => {
   try {
     const url = new URL(request.url);
     const uid = url.searchParams.get('uid');
+    if (uid !== null && typeof uid !== 'string') {
+      return new Response(JSON.stringify({ error: 'El parámetro uid debe ser un string' }), { status: 400 });
+    }
+    if (uid && uid.trim() === '') {
+      return new Response(JSON.stringify({ error: 'El parámetro uid no puede estar vacío' }), { status: 400 });
+    }
     if (uid) {
       const index = await client.index(uid).getRawInfo();
       return new Response(JSON.stringify(index), {
@@ -32,8 +38,11 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     const body = await request.json();
     const { uid, primaryKey } = body;
-    if (!uid) {
-      return new Response(JSON.stringify({ error: 'Falta el uid del índice' }), { status: 400 });
+    if (!uid || typeof uid !== 'string' || uid.trim() === '') {
+      return new Response(JSON.stringify({ error: 'Falta el uid del índice o no es válido' }), { status: 400 });
+    }
+    if (primaryKey && (typeof primaryKey !== 'string' || primaryKey.trim() === '')) {
+      return new Response(JSON.stringify({ error: 'El primaryKey debe ser un string no vacío si se proporciona' }), { status: 400 });
     }
     const index = await client.createIndex(uid, { primaryKey });
     return new Response(JSON.stringify(index), {
@@ -49,8 +58,8 @@ export const DELETE: APIRoute = async ({ request }) => {
   try {
     const body = await request.json();
     const { uid } = body;
-    if (!uid) {
-      return new Response(JSON.stringify({ error: 'Falta el uid del índice' }), { status: 400 });
+    if (!uid || typeof uid !== 'string' || uid.trim() === '') {
+      return new Response(JSON.stringify({ error: 'Falta el uid del índice o no es válido' }), { status: 400 });
     }
     const res = await client.index(uid).delete();
     return new Response(JSON.stringify(res), {
@@ -62,12 +71,15 @@ export const DELETE: APIRoute = async ({ request }) => {
   }
 };
 
-export const PATCH: APIRoute = async ({ request }) => {
+export const UPDATE: APIRoute = async ({ request }) => {
   try {
     const body = await request.json();
     const { uid, primaryKey } = body;
-    if (!uid || !primaryKey) {
-      return new Response(JSON.stringify({ error: 'Faltan parámetros' }), { status: 400 });
+    if (!uid || typeof uid !== 'string' || uid.trim() === '') {
+      return new Response(JSON.stringify({ error: 'Falta el uid del índice o no es válido' }), { status: 400 });
+    }
+    if (!primaryKey || typeof primaryKey !== 'string' || primaryKey.trim() === '') {
+      return new Response(JSON.stringify({ error: 'Falta el primaryKey o no es válido' }), { status: 400 });
     }
     const res = await client.index(uid).update({ primaryKey });
     return new Response(JSON.stringify(res), {
@@ -78,3 +90,21 @@ export const PATCH: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ error: 'Error al modificar el índice' }), { status: 500 });
   }
 };
+
+export const PATCH: APIRoute = async ({ request }) => {
+  try {
+    const body = await request.json();
+    const { uid } = body;
+    if (!uid || typeof uid !== 'string' || uid.trim() === '') {
+      return new Response(JSON.stringify({ error: 'Falta el uid del índice o no es válido' }), { status: 400 });
+    }
+    await client.index(uid).deleteAllDocuments();
+    return new Response(JSON.stringify({ mensaje: 'Contenido del índice borrado correctamente' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: 'Error al borrar el contenido del índice' }), { status: 500 });
+  }
+};
+
