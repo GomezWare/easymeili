@@ -1,3 +1,10 @@
+---
+import Sidebar from "../components/Sidebar.astro";
+import Header from "../components/Header.astro";
+import '../styles/global.css';
+const { sidebarActive = 'indices', headerTitle = 'Panel de administración' } = Astro.props;
+---
+
 <!doctype html>
 <html lang="en">
 	<head>
@@ -5,10 +12,18 @@
 		<meta name="viewport" content="width=device-width" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="generator" content={Astro.generator} />
-		<title>Astro Basics</title>
+		<title>EasyMeili Dashboard</title>
 	</head>
 	<body>
-		<slot />
+		<div class="flex h-screen bg-gray-50">
+			<Sidebar active={sidebarActive} />
+			<div class="flex-1 flex flex-col">
+				<Header title={headerTitle} />
+				<main class="flex-1 p-8 overflow-y-auto">
+					<slot />
+				</main>
+			</div>
+		</div>
 	</body>
 </html>
 
