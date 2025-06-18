@@ -16,6 +16,7 @@
     "alpinejs": "^3.14.9",
     "astro": "^5.9.4",
     "dotenv": "^16.5.0",
+    "meilisearch": "^0.51.0",
     "tailwindcss": "^4.1.10"
   }
 }
