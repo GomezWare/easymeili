@@ -1,5 +1,8 @@
 import type { APIRoute } from "astro";
 import { MeiliSearch } from 'meilisearch';
+import dotEnv from "dotenv";
+
+dotEnv.config()
 
 const client = new MeiliSearch({
   host: process.env.MEILISEARCH_HOST || 'http://127.0.0.1:7700',
