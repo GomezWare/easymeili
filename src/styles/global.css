@@ -1,1 +1,6 @@
 @import "tailwindcss";
+
+
+[x-cloak] {
+  display: none !important;
+}

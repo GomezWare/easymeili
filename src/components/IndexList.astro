@@ -1,22 +1,829 @@
-<div class="bg-white rounded-lg shadow p-6">
-  <div class="flex items-center justify-between mb-4">
-    <h2 class="text-xl font-bold">Índices</h2>
-    <a href="#nuevo-indice" class="bg-indigo-600 text-white px-4 py-2 rounded-md font-medium hover:bg-indigo-700">Nuevo índice</a>
+<div x-data="indexListData" class="bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-lg border border-gray-100 p-4 sm:p-6 lg:p-8">
+  <!-- Toast notifications -->
+  <div class="fixed top-4 right-4 z-50 space-y-2">
+    <template x-for="toast in toasts" :key="toast.id">
+      <div 
+        x-show="toast.visible" 
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="transform translate-x-full opacity-0"
+        x-transition:enter-end="transform translate-x-0 opacity-100"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="transform translate-x-0 opacity-100"
+        x-transition:leave-end="transform translate-x-full opacity-0"
+        class="max-w-sm w-full bg-white rounded-lg shadow-lg border border-gray-200 p-4"
+        :class="{
+          'border-green-200 bg-green-50': toast.type === 'success',
+          'border-red-200 bg-red-50': toast.type === 'error',
+          'border-yellow-200 bg-yellow-50': toast.type === 'warning'
+        }"
+      >
+        <div class="flex items-start">
+          <div class="flex-shrink-0">
+            <div class="w-6 h-6 rounded-full flex items-center justify-center"
+                 :class="{
+                   'bg-green-100': toast.type === 'success',
+                   'bg-red-100': toast.type === 'error',
+                   'bg-yellow-100': toast.type === 'warning'
+                 }">
+              <svg x-show="toast.type === 'success'" class="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              <svg x-show="toast.type === 'error'" class="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+              <svg x-show="toast.type === 'warning'" class="w-4 h-4 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="ml-3 flex-1">
+            <p class="text-sm font-medium"
+               :class="{
+                 'text-green-800': toast.type === 'success',
+                 'text-red-800': toast.type === 'error',
+                 'text-yellow-800': toast.type === 'warning'
+               }"
+               x-text="toast.message"></p>
+          </div>
+          <div class="ml-4 flex-shrink-0">
+            <button @click="removeToast(toast.id)" class="text-gray-400 hover:text-gray-600">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </template>
   </div>
-  <div class="border rounded-lg divide-y">
-    <div class="flex items-center justify-between px-4 py-3">
-      <div>
-        <span class="font-medium text-gray-800">movies</span>
-        <span class="ml-2 text-sm text-gray-500">(12,345 documentos)</span>
-      </div>
-      <button class="text-indigo-600 hover:underline text-sm">Ver detalles</button>
+
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
+    <div>
+      <h2 class="text-xl sm:text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Índices</h2>
+      <p class="text-gray-500 mt-1 text-sm sm:text-base">Gestiona tus índices de búsqueda</p>
     </div>
-    <div class="flex items-center justify-between px-4 py-3">
-      <div>
-        <span class="font-medium text-gray-800">books</span>
-        <span class="ml-2 text-sm text-gray-500">(8,900 documentos)</span>
+    <button @click="openCreateModal()" class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium hover:from-indigo-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2 text-sm sm:text-base">
+      <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+      </svg>
+      <span>Nuevo Índice</span>
+    </button>
+  </div>
+  
+  <!-- Search bar -->
+  <div class="mb-6 sm:mb-8">
+    <div class="relative">
+      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
       </div>
-      <button class="text-indigo-600 hover:underline text-sm">Ver detalles</button>
+      <input 
+        type="text" 
+        x-model="searchQuery" 
+        placeholder="Buscar índices por nombre..." 
+        class="block w-full pl-10 pr-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm transition-all duration-200 text-sm sm:text-base"
+      />
+      <div x-show="searchQuery" class="absolute inset-y-0 right-0 pr-3 flex items-center">
+        <button @click="searchQuery = ''" class="text-gray-400 hover:text-gray-600">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div x-show="searchQuery" class="mt-2 text-sm text-gray-500">
+      <span x-text="`${filteredIndexes.length} de ${indexes.length} índices encontrados`"></span>
+    </div>
+  </div>
+  
+  <!-- Loading state -->
+  <div x-show="loading" class="text-center py-8 sm:py-12">
+    <div class="inline-block animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-4 border-indigo-200 border-t-indigo-600"></div>
+    <p class="mt-4 text-gray-600 font-medium text-sm sm:text-base">Cargando índices...</p>
+  </div>
+  
+  <!-- Error state -->
+  <div x-show="error" class="bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6 shadow-sm">
+    <div class="flex items-start">
+      <div class="flex-shrink-0">
+        <div class="w-8 h-8 sm:w-10 sm:h-10 bg-red-100 rounded-full flex items-center justify-center">
+          <svg class="h-5 w-5 sm:h-6 sm:w-6 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+        </div>
+      </div>
+      <div class="ml-3 sm:ml-4">
+        <h3 class="text-base sm:text-lg font-semibold text-red-800">Error al cargar índices</h3>
+        <div class="mt-2 text-red-700 text-sm sm:text-base">
+          <p x-text="error"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Indexes list -->
+  <div x-show="!loading && !error" class="space-y-3 sm:space-y-4">
+    <template x-for="index in filteredIndexes" :key="index.uid">
+      <div class="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 hover:shadow-lg hover:border-indigo-200 transition-all duration-200 transform hover:-translate-y-1">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div class="flex-1">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0 sm:mb-2">
+              <div class="flex items-center">
+                <div class="w-3 h-3 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full mr-3"></div>
+                <span class="text-base sm:text-lg font-semibold text-gray-800" x-text="index.uid"></span>
+              </div>
+              <span class="ml-0 sm:ml-3 px-3 py-1 bg-indigo-100 text-indigo-700 text-xs sm:text-sm font-medium rounded-full self-start sm:self-auto" x-text="`${index.totalDocuments || 0} documentos`"></span>
+            </div>
+            <div class="flex flex-col sm:flex-row sm:items-center text-xs sm:text-sm text-gray-500 gap-2 sm:gap-4 mt-2 sm:mt-0">
+              <div class="flex items-center">
+                <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <span x-text="`Creado: ${formatDate(index.createdAt)}`"></span>
+              </div>
+              <div class="flex items-center">
+                <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span x-text="`Actualizado: ${formatDate(index.updatedAt)}`"></span>
+              </div>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+            <button @click="viewDocuments(index)" class="bg-indigo-50 text-indigo-700 px-3 sm:px-4 py-2 rounded-lg font-medium hover:bg-indigo-100 transition-colors duration-200 flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm">
+              <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+              </svg>
+              <span class="hidden sm:inline">Ver documentos</span>
+              <span class="sm:hidden">Ver</span>
+            </button>
+            <button @click="addTestData(index.uid)" class="bg-green-50 text-green-700 px-3 sm:px-4 py-2 rounded-lg font-medium hover:bg-green-100 transition-colors duration-200 flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm">
+              <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+              </svg>
+              <span class="hidden sm:inline">Datos de Prueba</span>
+              <span class="sm:hidden">Prueba</span>
+            </button>
+            <button @click="purgeIndex(index.uid)" class="bg-yellow-50 text-yellow-700 px-3 sm:px-4 py-2 rounded-lg font-medium hover:bg-yellow-100 transition-colors duration-200 flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm">
+              <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.5 10.5L21 21"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 10.5L10.5 21"></path>
+              </svg>
+              <span class="hidden sm:inline">Purgar</span>
+              <span class="sm:hidden">Purgar</span>
+            </button>
+            <button @click="deleteIndex(index.uid)" class="bg-red-50 text-red-600 px-3 sm:px-4 py-2 rounded-lg font-medium hover:bg-red-100 transition-colors duration-200 flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm">
+              <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+              <span class="hidden sm:inline">Eliminar</span>
+              <span class="sm:hidden">Eliminar</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </template>
+    
+    <!-- Empty state -->
+    <div x-show="filteredIndexes.length === 0" class="text-center py-12 sm:py-16">
+      <div class="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+        <svg class="w-10 h-10 sm:w-12 sm:h-12 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      </div>
+      <h3 class="text-lg sm:text-xl font-semibold text-gray-700 mb-2" x-text="searchQuery ? 'No se encontraron índices' : 'No hay índices'"></h3>
+      <p class="text-gray-500 mb-4 sm:mb-6 text-sm sm:text-base" x-text="searchQuery ? 'Intenta con otros términos de búsqueda' : 'Crea tu primer índice para comenzar a organizar tus datos.'"></p>
+      <button x-show="!searchQuery" @click="openCreateModal()" class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium hover:from-indigo-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200 text-sm sm:text-base">
+        Crear primer índice
+      </button>
+    </div>
+  </div>
+  
+  <!-- Documents modal -->
+  <div x-show="showDocumentsModal" x-cloak class="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50 backdrop-blur-sm">
+    <div class="relative top-4 sm:top-10 mx-auto p-4 sm:p-6 border w-11/12 md:w-4/5 lg:w-3/4 xl:w-2/3 shadow-2xl rounded-2xl bg-white">
+      <div class="mt-3">
+        <div class="flex items-center justify-between mb-4 sm:mb-6">
+          <div>
+            <h3 class="text-xl sm:text-2xl font-bold text-gray-900" x-text="`Documentos de ${selectedIndex?.uid}`"></h3>
+            <p class="text-gray-500 mt-1 text-sm sm:text-base">Visualiza y gestiona los documentos del índice</p>
+          </div>
+          <button @click="showDocumentsModal = false" class="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg transition-colors duration-200">
+            <svg class="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        <div class="max-h-80 sm:max-h-96 overflow-y-auto space-y-3 sm:space-y-4">
+          <template x-for="doc in selectedIndex?.documents" :key="doc.id || Math.random()">
+            <div class="bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-3 sm:p-4 hover:shadow-md transition-shadow duration-200">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs sm:text-sm font-medium text-gray-600">Documento ID: <span class="text-indigo-600" x-text="doc.id || 'N/A'"></span></span>
+                <span class="text-xs text-gray-400" x-text="`${JSON.stringify(doc).length} caracteres`"></span>
+              </div>
+              <pre class="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap bg-white rounded-lg p-2 sm:p-3 border max-h-32 sm:max-h-48 overflow-y-auto" x-text="JSON.stringify(doc, null, 2)"></pre>
+            </div>
+          </template>
+          
+          <div x-show="!selectedIndex?.documents || selectedIndex.documents.length === 0" class="text-center py-8 sm:py-12">
+            <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+              <svg class="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <h4 class="text-base sm:text-lg font-medium text-gray-700 mb-2">No hay documentos</h4>
+            <p class="text-gray-500 text-sm sm:text-base">Este índice no contiene documentos aún.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Index Modal -->
+  <div x-show="showCreateModal" x-cloak class="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50 backdrop-blur-sm">
+    <div class="relative top-4 sm:top-10 mx-auto p-4 sm:p-6 border w-11/12 md:w-4/5 lg:w-3/4 xl:w-2/3 shadow-2xl rounded-2xl bg-white">
+      <div class="mt-3">
+        <div class="flex items-center justify-between mb-4 sm:mb-6">
+          <div>
+            <h3 class="text-xl sm:text-2xl font-bold text-gray-900">Crear Nuevo Índice</h3>
+            <p class="text-gray-500 mt-1 text-sm sm:text-base">Define las propiedades de tu nuevo índice de búsqueda</p>
+          </div>
+          <button @click="closeCreateModal()" class="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg transition-colors duration-200">
+            <svg class="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        <form @submit.prevent="submitCreateIndex()" class="space-y-4 sm:space-y-6">
+          <!-- Index Name -->
+          <div>
+            <label for="indexName" class="block text-sm font-medium text-gray-700 mb-2">
+              Nombre del Índice <span class="text-red-500">*</span>
+            </label>
+            <input 
+              type="text" 
+              id="indexName"
+              x-model="newIndex.name" 
+              required
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="ej: productos, usuarios, documentos"
+            />
+            <p class="text-xs text-gray-500 mt-1">El nombre debe ser único y solo puede contener letras, números, guiones y guiones bajos</p>
+          </div>
+          
+          <!-- Primary Key -->
+          <div>
+            <label for="primaryKey" class="block text-sm font-medium text-gray-700 mb-2">
+              Clave Primaria
+            </label>
+            <input 
+              type="text" 
+              id="primaryKey"
+              x-model="newIndex.primaryKey" 
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="id (opcional, se detectará automáticamente)"
+            />
+            <p class="text-xs text-gray-500 mt-1">Campo único que identifica cada documento. Si no se especifica, MeiliSearch lo detectará automáticamente</p>
+          </div>
+          
+          <!-- Description -->
+          <div>
+            <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+              Descripción
+            </label>
+            <textarea 
+              id="description"
+              x-model="newIndex.description" 
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="Describe el propósito de este índice..."
+            ></textarea>
+          </div>
+          
+          <!-- Add Sample Data -->
+          <div>
+            <label class="flex items-center">
+              <input 
+                type="checkbox" 
+                x-model="newIndex.addSampleData" 
+                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              <span class="ml-2 text-sm text-gray-700">Añadir datos de ejemplo al crear el índice</span>
+            </label>
+            <p class="text-xs text-gray-500 mt-1">Se añadirán 5 documentos de ejemplo para que puedas probar la búsqueda inmediatamente</p>
+          </div>
+          
+          <!-- Form Actions -->
+          <div class="flex flex-col sm:flex-row gap-3 pt-4">
+            <button 
+              type="submit" 
+              :disabled="!newIndex.name.trim()"
+              class="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            >
+              <span x-show="!creatingIndex">Crear Índice</span>
+              <span x-show="creatingIndex" class="flex items-center justify-center">
+                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Creando...
+              </span>
+            </button>
+            <button 
+              type="button" 
+              @click="closeCreateModal()" 
+              class="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors duration-200"
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Index Confirmation Modal -->
+  <div x-show="showDeleteModal" x-cloak class="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50 backdrop-blur-sm">
+    <div class="relative top-4 sm:top-10 mx-auto p-4 sm:p-6 border w-11/12 md:w-4/5 lg:w-3/4 xl:w-2/3 shadow-2xl rounded-2xl bg-white">
+      <div class="mt-3">
+        <div class="flex items-center justify-between mb-4 sm:mb-6">
+          <div>
+            <h3 class="text-xl sm:text-2xl font-bold text-red-600">Eliminar Índice</h3>
+            <p class="text-gray-500 mt-1 text-sm sm:text-base">Esta acción no se puede deshacer</p>
+          </div>
+          <button @click="closeDeleteModal()" class="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg transition-colors duration-200">
+            <svg class="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        <div class="space-y-4 sm:space-y-6">
+          <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div class="flex items-start">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <h4 class="text-sm font-medium text-red-800">¿Estás seguro?</h4>
+                <p class="text-sm text-red-700 mt-1">
+                  Estás a punto de eliminar el índice <strong x-text="indexToDelete"></strong>. 
+                  Esta acción eliminará permanentemente el índice y todos sus documentos.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="flex flex-col sm:flex-row gap-3 pt-4">
+            <button 
+              type="button" 
+              @click="confirmDeleteIndex()" 
+              class="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors duration-200"
+            >
+              <span x-show="!deletingIndex">Eliminar Índice</span>
+              <span x-show="deletingIndex" class="flex items-center justify-center">
+                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Eliminando...
+              </span>
+            </button>
+            <button 
+              type="button" 
+              @click="closeDeleteModal()" 
+              class="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors duration-200"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Purge Index Confirmation Modal -->
+  <div x-show="showPurgeModal" x-cloak class="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50 backdrop-blur-sm">
+    <div class="relative top-4 sm:top-10 mx-auto p-4 sm:p-6 border w-11/12 md:w-4/5 lg:w-3/4 xl:w-2/3 shadow-2xl rounded-2xl bg-white">
+      <div class="mt-3">
+        <div class="flex items-center justify-between mb-4 sm:mb-6">
+          <div>
+            <h3 class="text-xl sm:text-2xl font-bold text-yellow-600">Purgar Índice</h3>
+            <p class="text-gray-500 mt-1 text-sm sm:text-base">Eliminar todos los documentos del índice</p>
+          </div>
+          <button @click="closePurgeModal()" class="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg transition-colors duration-200">
+            <svg class="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        <div class="space-y-4 sm:space-y-6">
+          <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div class="flex items-start">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <h4 class="text-sm font-medium text-yellow-800">¿Estás seguro?</h4>
+                <p class="text-sm text-yellow-700 mt-1">
+                  Estás a punto de purgar el índice <strong x-text="indexToPurge"></strong>. 
+                  Esta acción eliminará todos los documentos del índice pero mantendrá la estructura del índice.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="flex flex-col sm:flex-row gap-3 pt-4">
+            <button 
+              type="button" 
+              @click="confirmPurgeIndex()" 
+              class="flex-1 bg-yellow-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-yellow-700 transition-colors duration-200"
+            >
+              <span x-show="!purgingIndex">Purgar Índice</span>
+              <span x-show="purgingIndex" class="flex items-center justify-center">
+                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Purgando...
+              </span>
+            </button>
+            <button 
+              type="button" 
+              @click="closePurgeModal()" 
+              class="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors duration-200"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div> 
+
+<script>
+  import Alpine from "alpinejs";
+
+  interface Index {
+    uid: string;
+    primaryKey: string;
+    createdAt: string;
+    updatedAt: string;
+    documents?: any[];
+    totalDocuments?: number;
+    documentsLimit?: number;
+    documentsOffset?: number;
+    documentsError?: string;
+  }
+
+  interface Toast {
+    id: string;
+    type: 'success' | 'error' | 'warning';
+    message: string;
+    visible: boolean;
+  }
+
+  const indexListData = () => ({
+    indexes: [] as Index[],
+    loading: true,
+    error: null as string | null,
+    showDocumentsModal: false,
+    selectedIndex: null as Index | null,
+    toasts: [] as Toast[],
+    searchQuery: '',
+    showCreateModal: false,
+    newIndex: {
+      name: '',
+      primaryKey: '',
+      description: '',
+      addSampleData: false
+    },
+    creatingIndex: false,
+    showDeleteModal: false,
+    showPurgeModal: false,
+    indexToDelete: '',
+    indexToPurge: '',
+    deletingIndex: false,
+    purgingIndex: false,
+    
+    get filteredIndexes() {
+      if (!this.searchQuery.trim()) {
+        return this.indexes;
+      }
+      const query = this.searchQuery.toLowerCase().trim();
+      return this.indexes.filter(index => 
+        index.uid.toLowerCase().includes(query)
+      );
+    },
+    
+    addToast(type: 'success' | 'error' | 'warning', message: string) {
+      const id = Math.random().toString(36).substr(2, 9);
+      const toast: Toast = {
+        id,
+        type,
+        message,
+        visible: true
+      };
+      
+      this.toasts.push(toast);
+      
+      // Auto remove after 5 seconds
+      setTimeout(() => {
+        this.removeToast(id);
+      }, 5000);
+    },
+    
+    removeToast(id: string) {
+      const toast = this.toasts.find(t => t.id === id);
+      if (toast) {
+        toast.visible = false;
+        setTimeout(() => {
+          this.toasts = this.toasts.filter(t => t.id !== id);
+        }, 200);
+      }
+    },
+    
+    formatDate(dateString: string): string {
+      try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) {
+          return 'Fecha inválida';
+        }
+        return date.toLocaleDateString('es-ES', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      } catch (error) {
+        return 'Fecha inválida';
+      }
+    },
+    
+    async init() {
+      await this.loadIndexes();
+    },
+    
+    async loadIndexes() {
+      this.loading = true;
+      this.error = null;
+      
+      try {
+        const response = await fetch('/api/indexes?documents=true');
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        this.indexes = data.results || [];
+      } catch (err: unknown) {
+        console.error('Error loading indexes:', err);
+        this.error = err instanceof Error ? err.message : 'Error al cargar los índices';
+      } finally {
+        this.loading = false;
+      }
+    },
+    
+    openCreateModal() {
+      this.showCreateModal = true;
+    },
+    
+    closeCreateModal() {
+      this.showCreateModal = false;
+      // Resetear formulario
+      this.newIndex = {
+        name: '',
+        primaryKey: '',
+        description: '',
+        addSampleData: false
+      };
+      this.creatingIndex = false;
+    },
+    
+    async submitCreateIndex() {
+      this.creatingIndex = true;
+      
+      try {
+        // Crear el índice
+        const response = await fetch('/api/indexes', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            uid: this.newIndex.name,
+            primaryKey: this.newIndex.primaryKey || undefined
+          }),
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Error al crear el índice');
+        }
+        
+        // Si se seleccionó añadir datos de ejemplo
+        if (this.newIndex.addSampleData) {
+          try {
+            await this.addTestData(this.newIndex.name);
+          } catch (sampleError) {
+            console.warn('Error adding sample data:', sampleError);
+            // No fallar la creación del índice si falla añadir datos de ejemplo
+          }
+        }
+        
+        // Recargar índices
+        await this.loadIndexes();
+        this.addToast('success', `Índice "${this.newIndex.name}" creado correctamente`);
+        
+        // Resetear formulario y cerrar modal
+        this.newIndex = {
+          name: '',
+          primaryKey: '',
+          description: '',
+          addSampleData: false
+        };
+        this.closeCreateModal();
+      } catch (err: unknown) {
+        console.error('Error creating index:', err);
+        this.addToast('error', err instanceof Error ? err.message : 'Error al crear el índice');
+      } finally {
+        this.creatingIndex = false;
+      }
+    },
+    
+    async addTestData(uid: string) {
+      try {
+        // Datos de prueba
+        const testDocuments = [
+          {
+            id: Date.now() + 1,
+            title: 'Introducción a MeiliSearch',
+            content: 'MeiliSearch es un motor de búsqueda potente y fácil de usar.',
+            category: 'tecnología',
+            tags: ['búsqueda', 'motor', 'desarrollo'],
+            rating: 4.5,
+            author: 'Ana García',
+            publishedAt: '2024-01-15'
+          },
+          {
+            id: Date.now() + 2,
+            title: 'Guía de Astro Framework',
+            content: 'Astro es un framework moderno para crear sitios web estáticos y dinámicos.',
+            category: 'desarrollo',
+            tags: ['astro', 'framework', 'web'],
+            rating: 4.8,
+            author: 'Carlos López',
+            publishedAt: '2024-01-20'
+          },
+          {
+            id: Date.now() + 3,
+            title: 'Optimización de Búsquedas',
+            content: 'Técnicas avanzadas para mejorar la relevancia de los resultados de búsqueda.',
+            category: 'tecnología',
+            tags: ['optimización', 'búsqueda', 'algoritmos'],
+            rating: 4.2,
+            author: 'María Rodríguez',
+            publishedAt: '2024-01-25'
+          },
+          {
+            id: Date.now() + 4,
+            title: 'Desarrollo Frontend Moderno',
+            content: 'Herramientas y técnicas para crear interfaces de usuario modernas y responsivas.',
+            category: 'desarrollo',
+            tags: ['frontend', 'ui', 'ux', 'javascript'],
+            rating: 4.6,
+            author: 'Luis Martínez',
+            publishedAt: '2024-02-01'
+          },
+          {
+            id: Date.now() + 5,
+            title: 'Bases de Datos NoSQL',
+            content: 'Explorando las ventajas y casos de uso de las bases de datos NoSQL.',
+            category: 'tecnología',
+            tags: ['nosql', 'base de datos', 'escalabilidad'],
+            rating: 4.3,
+            author: 'Sofia Pérez',
+            publishedAt: '2024-02-05'
+          }
+        ];
+        
+        // Añadir documentos al índice especificado
+        const addResponse = await fetch('/api/indexes', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ uid, documents: testDocuments }),
+        });
+        
+        if (!addResponse.ok) {
+          const error = await addResponse.json();
+          throw new Error(error.error || 'Error al añadir documentos de prueba');
+        }
+        
+        // Recargar índices
+        await this.loadIndexes();
+        this.addToast('success', `${testDocuments.length} documentos de prueba añadidos al índice "${uid}"`);
+      } catch (err: unknown) {
+        console.error('Error adding test data:', err);
+        this.addToast('error', err instanceof Error ? err.message : 'Error al añadir datos de prueba');
+      }
+    },
+    
+    async deleteIndex(uid: string) {
+      this.indexToDelete = uid;
+      this.showDeleteModal = true;
+    },
+    
+    async purgeIndex(uid: string) {
+      this.indexToPurge = uid;
+      this.showPurgeModal = true;
+    },
+    
+    viewDocuments(index: Index) {
+      this.selectedIndex = index;
+      this.showDocumentsModal = true;
+    },
+    
+    closeDeleteModal() {
+      this.showDeleteModal = false;
+    },
+    
+    closePurgeModal() {
+      this.showPurgeModal = false;
+    },
+    
+    async confirmDeleteIndex() {
+      this.deletingIndex = true;
+      
+      try {
+        const response = await fetch('/api/indexes', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ uid: this.indexToDelete }),
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Error al eliminar el índice');
+        }
+        
+        // Recargar índices
+        await this.loadIndexes();
+        this.addToast('success', `Índice "${this.indexToDelete}" eliminado correctamente`);
+        this.closeDeleteModal();
+      } catch (err: unknown) {
+        console.error('Error deleting index:', err);
+        this.addToast('error', err instanceof Error ? err.message : 'Error al eliminar el índice');
+      } finally {
+        this.deletingIndex = false;
+      }
+    },
+    
+    async confirmPurgeIndex() {
+      this.purgingIndex = true;
+      
+      try {
+        const response = await fetch('/api/indexes', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ uid: this.indexToPurge }),
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Error al purgar el índice');
+        }
+        
+        // Recargar índices
+        await this.loadIndexes();
+        this.addToast('success', `Índice "${this.indexToPurge}" purgado correctamente`);
+        this.closePurgeModal();
+      } catch (err: unknown) {
+        console.error('Error purging index:', err);
+        this.addToast('error', err instanceof Error ? err.message : 'Error al purgar el índice');
+      } finally {
+        this.purgingIndex = false;
+      }
+    }
+  });
+
+  Alpine.data('indexListData', indexListData);
+</script>
