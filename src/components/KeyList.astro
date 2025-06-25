@@ -608,7 +608,7 @@
     
     async loadAvailableIndexes() {
       try {
-        const response = await fetch('/api/indexes');
+        const response = await fetch('/api/indexes?documents=true');
         if (response.ok) {
           const data = await response.json();
           this.availableIndexes = data.results || [];
@@ -620,8 +620,7 @@
     
     async createNewKey() {
       this.showCreateModal = true;
-      // Marcar todos los índices por defecto
-      this.newKey.selectedIndexes = this.availableIndexes.map(index => index.uid);
+      // No marcar ningún índice por defecto
     },
     
     async deleteKey(keyValue: string) {
@@ -645,18 +644,27 @@
         return;
       }
       
+      // Validar que se hayan seleccionado índices (a menos que se seleccione "todos")
+      if (!this.newKey.allIndexes && !this.newKey.selectedIndexes.length) {
+        this.addToast('error', 'Debes seleccionar al menos un índice o marcar "Todos los índices"');
+        return;
+      }
+      
       try {
-        // Preparar los datos de la clave
+        // Preparar los datos de la clave según la documentación de MeiliSearch
         const keyData: any = {
-          name: this.newKey.name || undefined,
-          description: this.newKey.description || undefined,
-          actions: this.newKey.selectedActions,
-          indexes: this.newKey.allIndexes ? [] : this.newKey.selectedIndexes,
+          actions: this.newKey.allActions ? ["*"] : this.newKey.selectedActions,
+          indexes: this.newKey.allIndexes ? [] : this.newKey.selectedIndexes, // Array vacío será convertido a ["*"] en el backend
+          expiresAt: this.newKey.expiresAt || null, // Siempre enviar expiresAt, null si no se especifica
         };
         
-        // Añadir fecha de expiración si está definida
-        if (this.newKey.expiresAt) {
-          keyData.expiresAt = this.newKey.expiresAt;
+        // Añadir campos opcionales solo si están definidos
+        if (this.newKey.name && this.newKey.name.trim()) {
+          keyData.name = this.newKey.name.trim();
+        }
+        
+        if (this.newKey.description && this.newKey.description.trim()) {
+          keyData.description = this.newKey.description.trim();
         }
         
         const response = await fetch('/api/keys', {
@@ -694,7 +702,7 @@
         description: '',
         allIndexes: false,
         allActions: false,
-        selectedIndexes: this.availableIndexes.map(index => index.uid),
+        selectedIndexes: [], // Array vacío por defecto
         selectedActions: [],
         expiresAt: '',
       };
@@ -702,8 +710,11 @@
     
     toggleAllIndexes() {
       if (this.newKey.allIndexes) {
-        this.newKey.selectedIndexes = this.availableIndexes.map(index => index.uid);
+        // Si se marca "todos los índices", limpiar selección específica
+        this.newKey.selectedIndexes = [];
       } else {
+        // Si se desmarca "todos los índices", no seleccionar nada por defecto
+        // El usuario debe elegir manualmente
         this.newKey.selectedIndexes = [];
       }
     },

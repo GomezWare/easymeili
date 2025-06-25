@@ -1,7 +1,6 @@
 import type { APIRoute } from "astro";
 import { MeiliSearch } from 'meilisearch';
 import dotEnv from "dotenv";
-import { generateUid } from "../../utils/generateUid";
 
 dotEnv.config()
 
@@ -150,20 +149,40 @@ export const GET: APIRoute = async ({ request }) => {
 export const POST: APIRoute = async ({ request }) => {
   try {
     const body = await request.json();
-    const { uid } = body;
+    const { uid, primaryKey } = body;
 
     if (uid && (typeof uid !== 'string' || uid.trim() === '')) {
       return new Response(JSON.stringify({ error: 'El uid debe ser un string no vacío si se proporciona' }), { status: 400 });
     }
 
-    const index = await client.createIndex(uid);
+    // Usar "id" como clave primaria predeterminada si no se especifica
+    const indexData: any = {
+      uid,
+      primaryKey: primaryKey || 'id'
+    };
+
+    const index = await client.createIndex(indexData.uid, { primaryKey: indexData.primaryKey });
 
     return new Response(JSON.stringify(index), {
       status: 201,
       headers: { 'Content-Type': 'application/json' },
     });
-  } catch (e) {
-    return new Response(JSON.stringify({ error: 'Error al crear el índice' }), { status: 500 });
+  } catch (e: any) {
+    console.error('Error in POST /api/indexes:', e);
+    
+    // Manejar errores específicos de MeiliSearch
+    if (e.code === 'index_already_exists') {
+      return new Response(JSON.stringify({ error: 'Ya existe un índice con ese uid' }), { status: 409 });
+    }
+    
+    if (e.code === 'invalid_index_uid') {
+      return new Response(JSON.stringify({ error: 'El uid del índice no es válido' }), { status: 400 });
+    }
+    
+    return new Response(JSON.stringify({ 
+      error: 'Error al crear el índice',
+      details: e.message || 'Error desconocido'
+    }), { status: 500 });
   }
 };
 
